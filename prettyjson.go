@@ -41,6 +41,9 @@ type Formatter struct {
 
 	// Newline string. To print without new lines set it to empty string. Default is \n.
 	Newline string
+
+	// NewlineArray is the string for array new string. To print without new lines set it to empty string. Default is \n.
+	NewlineArray string
 }
 
 // NewFormatter returns a new formatter with following default values.
@@ -55,6 +58,7 @@ func NewFormatter() *Formatter {
 		DisabledColor:   false,
 		Indent:          2,
 		Newline:         "\n",
+		NewlineArray:    "\n",
 	}
 }
 
@@ -172,12 +176,19 @@ func (f *Formatter) processArray(a []interface{}, depth int) string {
 	nextIndent := f.generateIndent(depth)
 	rows := []string{}
 
+	// Reset indents to empty space when newline is not required.
+	if f.NewlineArray == "" {
+		nextIndent = ""
+		currentIndent = ""
+	}
+
 	for _, val := range a {
 		c := f.pretty(val, depth+1)
 		row := nextIndent + c
 		rows = append(rows, row)
 	}
-	return fmt.Sprintf("[%s%s%s%s]", f.Newline, strings.Join(rows, ","+f.Newline), f.Newline, currentIndent)
+
+	return fmt.Sprintf("[%s%s%s%s]", f.NewlineArray, strings.Join(rows, ","+f.NewlineArray), f.NewlineArray, currentIndent)
 }
 
 func (f *Formatter) generateIndent(depth int) string {
