@@ -1,12 +1,12 @@
-package prettyjson_test
+package prettyjson
 
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/fatih/color"
-	"github.com/hokaccha/go-prettyjson"
 )
 
 func Example() {
@@ -20,7 +20,7 @@ func Example() {
 			"foo": "bar",
 		},
 	}
-	s, _ := prettyjson.Marshal(v)
+	s, _ := Marshal(v)
 	fmt.Println(string(s))
 	// Output:
 	// {
@@ -40,22 +40,24 @@ func Example() {
 }
 
 func TestMarshal(t *testing.T) {
-	prettyJson := func(s string) string {
+	prettyJSON := func(s string) string {
 		var v interface{}
 
-		err := json.Unmarshal([]byte(s), &v)
+		decoder := json.NewDecoder(strings.NewReader(s))
+		decoder.UseNumber()
+		err := decoder.Decode(&v)
 
 		if err != nil {
 			t.Error(err)
 		}
 
-		prettyJsonByte, err := prettyjson.Marshal(v)
+		prettyJSONByte, err := Marshal(v)
 
 		if err != nil {
 			t.Error(err)
 		}
 
-		return string(prettyJsonByte)
+		return string(prettyJSONByte)
 	}
 
 	test := func(expected, actual string) {
@@ -70,7 +72,7 @@ func TestMarshal(t *testing.T) {
 	blackBold := color.New(color.FgBlack, color.Bold).SprintFunc()
 	yelloBold := color.New(color.FgYellow, color.Bold).SprintFunc()
 
-	actual := prettyJson(`{
+	actual := prettyJSON(`{
   "key": {
     "a": "str",
     "b": 100,
@@ -111,12 +113,17 @@ func TestMarshal(t *testing.T) {
 	)
 
 	test(expected, actual)
-	test("{}", prettyJson("{}"))
-	test("[]", prettyJson("[]"))
+	test("{}", prettyJSON("{}"))
+	test("[]", prettyJSON("[]"))
+
+	test(
+		fmt.Sprintf("{\n  %s: %s\n}", blueBold(`"x"`), cyanBold("123456789123456789123456789")),
+		prettyJSON(`{"x":123456789123456789123456789}`),
+	)
 }
 
 func TestStringEscape(t *testing.T) {
-	f := prettyjson.NewFormatter()
+	f := NewFormatter()
 	f.DisabledColor = true
 	s := `{"foo":"foo\"\nbar"}`
 	r, err := f.Format([]byte(s))
@@ -135,7 +142,7 @@ func TestStringEscape(t *testing.T) {
 }
 
 func TestStringPercentEscape(t *testing.T) {
-	f := prettyjson.NewFormatter()
+	f := NewFormatter()
 	s := `{"foo":"foo%2Fbar"}`
 	r, err := f.Format([]byte(s))
 
@@ -160,7 +167,7 @@ func TestStringPercentEscape(t *testing.T) {
 }
 
 func TestStringPercentEscape_DisabledColor(t *testing.T) {
-	f := prettyjson.NewFormatter()
+	f := NewFormatter()
 	f.DisabledColor = true
 	s := `{"foo":"foo%2Fbar"}`
 	r, err := f.Format([]byte(s))
@@ -175,5 +182,17 @@ func TestStringPercentEscape_DisabledColor(t *testing.T) {
 
 	if string(r) != expected {
 		t.Errorf("actual: %s\nexpected: %s", string(r), expected)
+	}
+}
+
+func BenchmarkFromat(b *testing.B) {
+	s := []byte(`{"string": "a", "number": 3, "array": [1, 2, 3], "map": {"map": "value"}, "emptyArray": [], "emptyMap": {}}`)
+	f := NewFormatter()
+
+	if _, err := f.Format(s); err != nil {
+		b.Fatal(err)
+	}
+	for i := 0; i < b.N; i++ {
+		f.Format(s)
 	}
 }

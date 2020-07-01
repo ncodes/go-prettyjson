@@ -12,11 +12,14 @@ func main() {
 		"num":   100,
 		"bool":  false,
 		"null":  nil,
-		"array": []string{"foo", "<bar>", "baz"},
+		"array": []string{"foo", "bar", "baz"},
 		"map": map[string]interface{}{
 			"foo": "bar",
 		},
 	}
-	s, _ := prettyjson.Marshal(v)
+	f := prettyjson.NewFormatter()
+	f.Indent = 0
+	f.Newline = ""
+	s, _ := f.Marshal(v)
 	fmt.Println(string(s))
 }
